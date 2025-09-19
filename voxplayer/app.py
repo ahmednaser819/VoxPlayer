@@ -906,7 +906,7 @@ class VoxPlayerMainWindow(QMainWindow):
         # Torrent and update functionality
         self.torrent_streamer = None
         self.update_checker = None
-        self.current_version = "1.0.0"
+        self.current_version = "1.0.1"
         
         # Audio device detection
         self.current_audio_device = None
@@ -2503,7 +2503,7 @@ def main():
     
     app = QApplication(sys.argv)
     app.setApplicationName("VoxPlayer")
-    app.setApplicationVersion("1.0.0")
+    app.setApplicationVersion("1.0.1")
     
     # Set application properties
     app.setOrganizationName("VoxHash")
