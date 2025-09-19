@@ -70,7 +70,7 @@ where = ["."]
 include = ["voxplayer*"]
 
 [tool.setuptools.package-data]
-voxplayer = ["*.ico", "*.png", "*.txt"]
+voxplayer = ["*.ico", "*.png", "*.txt", "logo.png"]
 
 [tool.black]
 line-length = 88

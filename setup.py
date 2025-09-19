@@ -71,6 +71,7 @@ setup(
             "*.ico",
             "*.png",
             "*.txt",
+            "logo.png",
         ],
     },
     keywords="media player, video player, audio player, PyQt6, multimedia, playlist, torrent streaming",

@@ -23,7 +23,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PyQt6.QtCore import Qt, QTimer, QSettings, QSize, QUrl, QMimeData, QThread, pyqtSignal
 from PyQt6.QtMultimediaWidgets import QVideoWidget
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QAudioDevice
-from PyQt6.QtGui import QKeySequence, QShortcut, QAction, QFont, QColor, QPixmap
+from PyQt6.QtGui import QKeySequence, QShortcut, QAction, QFont, QColor, QPixmap, QIcon
 import json
 import re
 from dataclasses import dataclass, asdict
@@ -921,6 +921,7 @@ class VoxPlayerMainWindow(QMainWindow):
         self.setup_drag_drop()
         self.setup_auto_update()
         self.apply_theme()
+        self.setup_icon()
         
         # Initialize audio device
         self.update_audio_device()
@@ -928,7 +929,7 @@ class VoxPlayerMainWindow(QMainWindow):
         # Load file if provided via command line
         if self.file_to_open:
             # Use QTimer to ensure the UI is fully loaded before loading the file
-            QTimer.singleShot(100, lambda: self.load_media(self.file_to_open))
+            QTimer.singleShot(100, lambda: self.load_and_play_media(self.file_to_open))
     
     def setup_ui(self):
         self.setWindowTitle("VoxPlayer")
@@ -1965,6 +1966,73 @@ For more information, visit the project repository.
         """
         self.setStyleSheet(voxplayer_style)
     
+    def setup_icon(self):
+        """Setup application and window icons"""
+        try:
+            # Try to load icon from package directory first
+            icon_path = os.path.join(os.path.dirname(__file__), "logo.png")
+            if not os.path.exists(icon_path):
+                # Fallback to current directory
+                icon_path = "logo.png"
+            if os.path.exists(icon_path):
+                # Set window icon
+                self.setWindowIcon(QIcon(icon_path))
+                
+                # Create a pixmap for the video widget background
+                self.logo_pixmap = QPixmap(icon_path)
+                if not self.logo_pixmap.isNull():
+                    # Scale the logo to fit nicely in the video widget
+                    self.logo_pixmap = self.logo_pixmap.scaled(
+                        200, 200, Qt.AspectRatioMode.KeepAspectRatio, 
+                        Qt.TransformationMode.SmoothTransformation
+                    )
+                    # Set the video widget background
+                    self.setup_video_widget_background()
+        except Exception as e:
+            print(f"Warning: Could not load application icon: {e}")
+    
+    def setup_video_widget_background(self):
+        """Setup video widget background with logo"""
+        if hasattr(self, 'logo_pixmap') and not self.logo_pixmap.isNull():
+            # Create a logo label overlay for the video widget
+            self.logo_label = QLabel(self.video_widget)
+            self.logo_label.setPixmap(self.logo_pixmap)
+            self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.logo_label.setStyleSheet("""
+                QLabel {
+                    background-color: transparent;
+                    border: none;
+                }
+            """)
+            self.logo_label.show()
+            self.logo_label.raise_()
+            
+            # Position the logo in the center of the video widget
+            self.position_logo()
+    
+    def position_logo(self):
+        """Position the logo in the center of the video widget"""
+        if hasattr(self, 'logo_label') and self.logo_label:
+            video_rect = self.video_widget.rect()
+            logo_rect = self.logo_label.rect()
+            
+            # Center the logo
+            x = (video_rect.width() - logo_rect.width()) // 2
+            y = (video_rect.height() - logo_rect.height()) // 2
+            
+            self.logo_label.move(x, y)
+    
+    def show_logo(self, show=True):
+        """Show or hide the logo in the video widget"""
+        if hasattr(self, 'logo_label') and self.logo_label:
+            self.logo_label.setVisible(show)
+    
+    def resizeEvent(self, event):
+        """Handle window resize events"""
+        super().resizeEvent(event)
+        # Reposition logo when window is resized
+        self.position_logo()
+    
     def open_file(self):
         """Open file dialog and load media"""
         file_path, _ = QFileDialog.getOpenFileName(
@@ -2038,6 +2106,9 @@ For more information, visit the project repository.
             self.media_player.setSource(url)
             self.app_state.last_file = file_path
             
+            # Hide logo when media is loaded
+            self.show_logo(False)
+            
             # Update playlist selection to current file
             if hasattr(self, 'playlist') and self.playlist:
                 current_index = self.playlist.find_file_index(file_path)
@@ -2064,6 +2135,13 @@ For more information, visit the project repository.
         except Exception as e:
             QMessageBox.critical(self, "Load Error", f"Failed to load media file:\n{str(e)}")
             self.status_bar.showMessage(f"Error loading: {os.path.basename(file_path)}")
+    
+    def load_and_play_media(self, file_path):
+        """Load media file and auto-play it"""
+        self.load_media(file_path)
+        # Auto-play the loaded media
+        if self.media_player.source().isValid():
+            QTimer.singleShot(200, self.media_player.play)
     
     def previous_media(self):
         """Go to previous media file in playlist"""
@@ -2312,12 +2390,18 @@ For more information, visit the project repository.
         if state == QMediaPlayer.PlaybackState.PlayingState:
             self.controls.btn_play.setText("⏸")
             self.status_bar.showMessage("Playing")
+            # Hide logo when playing
+            self.show_logo(False)
         elif state == QMediaPlayer.PlaybackState.PausedState:
             self.controls.btn_play.setText("▶")
             self.status_bar.showMessage("Paused")
+            # Show logo when paused
+            self.show_logo(True)
         else:
             self.controls.btn_play.setText("▶")
             self.status_bar.showMessage("Stopped")
+            # Show logo when stopped
+            self.show_logo(True)
             
         # Auto-play next item when current media ends
         if state == QMediaPlayer.PlaybackState.StoppedState:
@@ -2424,6 +2508,18 @@ def main():
     # Set application properties
     app.setOrganizationName("VoxHash")
     app.setOrganizationDomain("voxhash.dev")
+    
+    # Set application icon
+    try:
+        # Try to load icon from package directory first
+        icon_path = os.path.join(os.path.dirname(__file__), "logo.png")
+        if not os.path.exists(icon_path):
+            # Fallback to current directory
+            icon_path = "logo.png"
+        if os.path.exists(icon_path):
+            app.setWindowIcon(QIcon(icon_path))
+    except Exception as e:
+        print(f"Warning: Could not load application icon: {e}")
     
     # Check for command-line arguments (file to open)
     file_to_open = None
