@@ -1,0 +1,19 @@
+# VoxPlayer Dependencies
+# Core GUI framework
+PyQt6>=6.0.0
+
+# HTTP requests for auto-updates
+requests>=2.25.0
+
+# Optional: Torrent streaming (install with: pip install webtorrent)
+# webtorrent>=0.0.1
+
+# Optional: Additional media format support
+# opencv-python>=4.5.0
+# pillow>=8.0.0
+
+# Development dependencies (optional)
+# pytest>=6.0.0
+# black>=21.0.0
+# flake8>=3.8.0
+# mypy>=0.800
